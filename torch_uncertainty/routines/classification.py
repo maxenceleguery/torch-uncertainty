@@ -681,7 +681,7 @@ class ClassificationEnsemble(ClassificationSingle):
     ) -> Tensor:
         inputs, targets = batch
         logits = self.forward(inputs)
-        logits = rearrange(logits, "(n b) c -> b n c", n=self.num_estimators)
+        logits = rearrange(logits, "(m b) c -> b m c", m=self.num_estimators)
 
         if self.binary_cls:
             probs_per_est = torch.sigmoid(logits)

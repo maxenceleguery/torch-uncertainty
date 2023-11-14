@@ -67,19 +67,7 @@ def optim_cifar10_wideresnet(
     model: nn.Module,
 ) -> dict[str, Optimizer | LRScheduler]:
     """Optimizer to train a WideResNet28x10 on CIFAR-10."""
-    optimizer = optim.SGD(
-        model.parameters(),
-        lr=0.1,
-        momentum=0.9,
-        weight_decay=5e-4,
-        nesterov=True,
-    )
-    scheduler = optim.lr_scheduler.MultiStepLR(
-        optimizer,
-        milestones=[60, 120, 160],
-        gamma=0.2,
-    )
-    return {"optimizer": optimizer, "lr_scheduler": scheduler}
+    return optim_cifar10_resnet50(model)
 
 
 def optim_cifar10_vgg16(
@@ -123,19 +111,7 @@ def optim_cifar100_resnet50(
     r"""Hyperparameters from Deep Residual Learning for Image Recognition
     https://arxiv.org/pdf/1512.03385.pdf.
     """
-    optimizer = optim.SGD(
-        model.parameters(),
-        lr=0.1,
-        momentum=0.9,
-        weight_decay=5e-4,
-        nesterov=True,
-    )
-    scheduler = optim.lr_scheduler.MultiStepLR(
-        optimizer,
-        milestones=[60, 120, 160],
-        gamma=0.2,
-    )
-    return {"optimizer": optimizer, "lr_scheduler": scheduler}
+    return optim_cifar10_resnet50(model)
 
 
 def optim_cifar100_vgg16(

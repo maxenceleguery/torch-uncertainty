@@ -234,7 +234,7 @@ class CIFAR100DataModule(AbstractDataModule):
         p = super().add_argparse_args(parent_parser)
 
         # Arguments for CIFAR100
-        p.add_argument("--cutout", type=int, default=0)
+        p.add_argument("--cutout", type=int, default=None)
         p.add_argument("--randaugment", dest="randaugment", action="store_true")
         p.add_argument("--auto_augment", type=str)
         p.add_argument("--test_alt", choices=["c"], default=None)

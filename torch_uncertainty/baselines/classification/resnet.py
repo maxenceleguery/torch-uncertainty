@@ -133,11 +133,11 @@ class ResNet:
                 Determines which ResNet version to use:
 
                 - ``"vanilla"``: original ResNet
-                - ``"packed"``: Packed-Ensembles ResNet
                 - ``"batched"``: BatchEnsemble ResNet
                 - ``"masked"``: Masksemble ResNet
-                - ``"mimo"``: MIMO ResNet
                 - ``"mc-dropout"``: Monte-Carlo Dropout ResNet
+                - ``"mimo"``: MIMO ResNet
+                - ``"packed"``: Packed-Ensembles ResNet
 
             arch (int):
                 Determines which ResNet architecture to use:
@@ -151,8 +151,7 @@ class ResNet:
             style (str, optional): Which ResNet style to use. Defaults to
             ``imagenet``.
             num_estimators (int, optional): Number of estimators in the ensemble.
-                Only used if :attr:`version` is either ``"packed"``, ``"batched"``,
-                ``"masked"`` or ``"mc-dropout"`` Defaults to ``None``.
+                Only used if :attr:`version` is an ensemble. Defaults to ``None``.
             dropout_rate (float, optional): Dropout rate. Defaults to ``0.0``.
             groups (int, optional): Number of groups in convolutions. Defaults to
                 ``1``.
@@ -197,7 +196,7 @@ class ResNet:
             "groups": groups,
         }
 
-        format_batch_fn = nn.Identity()
+        format_batch_fn = None
 
         if version not in cls.versions:
             raise ValueError(f"Unknown version: {version}")
