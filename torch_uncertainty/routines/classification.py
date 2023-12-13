@@ -20,7 +20,7 @@ from torchmetrics.classification import (
     BinaryCalibrationError,
 )
 
-from torch_uncertainty.losses import DECLoss, ELBOLoss
+from torch_uncertainty.losses import DECLoss, ELBOLoss, LpbnnLoss
 from torch_uncertainty.metrics import (
     FPR95,
     BrierScore,
@@ -188,8 +188,8 @@ class ClassificationSingle(pl.LightningModule):
         self.cal_plot = CalibrationPlot()
 
         # Handle ELBO special cases
-        self.is_elbo = (
-            isinstance(self.loss, partial) and self.loss.func == ELBOLoss
+        self.is_elbo = isinstance(self.loss, partial) and (
+            self.loss.func == ELBOLoss or self.loss.func == LpbnnLoss
         )
 
         # DEC

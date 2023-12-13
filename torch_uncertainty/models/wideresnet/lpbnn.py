@@ -1,0 +1,215 @@
+import torch.nn.functional as F
+from torch import Tensor, nn
+
+from torch_uncertainty.layers.lpbnn import LpbnnConv2d, LpbnnLinear
+
+__all__ = [
+    "lpbnn_wideresnet28x10",
+]
+
+
+class WideBasicBlock(nn.Module):
+    def __init__(
+        self,
+        in_planes: int,
+        planes: int,
+        dropout_rate: float,
+        stride: int = 1,
+        num_estimators: int = 4,
+        groups: int = 1,
+    ) -> None:
+        super().__init__()
+        self.conv1 = LpbnnConv2d(
+            in_planes,
+            planes,
+            kernel_size=3,
+            num_estimators=num_estimators,
+            groups=groups,
+            padding=1,
+            bias=False,
+        )
+        self.dropout = nn.Dropout(p=dropout_rate)
+        self.bn1 = nn.BatchNorm2d(planes)
+        self.conv2 = LpbnnConv2d(
+            planes,
+            planes,
+            kernel_size=3,
+            num_estimators=num_estimators,
+            groups=groups,
+            stride=stride,
+            padding=1,
+            bias=False,
+        )
+        self.shortcut = nn.Sequential()
+        if stride != 1 or in_planes != planes:
+            self.shortcut = nn.Sequential(
+                LpbnnConv2d(
+                    in_planes,
+                    planes,
+                    kernel_size=1,
+                    num_estimators=num_estimators,
+                    groups=groups,
+                    stride=stride,
+                    bias=True,
+                ),
+            )
+        self.bn2 = nn.BatchNorm2d(planes)
+
+    def forward(self, x: Tensor) -> Tensor:
+        out = F.relu(self.bn1(self.dropout(self.conv1(x))))
+        out = self.conv2(out)
+        out += self.shortcut(x)
+        return F.relu(self.bn2(out))
+
+
+class _LpbnnWideResNet(nn.Module):
+    def __init__(
+        self,
+        depth: int,
+        widen_factor: int,
+        in_channels: int,
+        num_classes: int,
+        num_estimators: int = 4,
+        groups: int = 1,
+        dropout_rate: float = 0,
+        style: str = "imagenet",
+    ) -> None:
+        super().__init__()
+        self.num_estimators = num_estimators
+        print(self.num_estimators)
+        self.in_planes = 16
+
+        if (depth - 4) % 6 != 0:
+            raise ValueError("Wide-resnet depth should be 6n+4.")
+        num_blocks = int((depth - 4) / 6)
+        k = widen_factor
+
+        num_stages = [16, 16 * k, 32 * k, 64 * k]
+
+        if style == "imagenet":
+            self.conv1 = LpbnnConv2d(
+                in_channels,
+                num_stages[0],
+                kernel_size=7,
+                num_estimators=self.num_estimators,
+                stride=2,
+                padding=3,
+                groups=groups,
+                bias=True,
+            )
+        else:
+            self.conv1 = LpbnnConv2d(
+                in_channels,
+                num_stages[0],
+                kernel_size=3,
+                num_estimators=self.num_estimators,
+                stride=1,
+                padding=1,
+                groups=groups,
+                bias=True,
+            )
+
+        self.bn1 = nn.BatchNorm2d(num_stages[0])
+
+        if style == "imagenet":
+            self.optional_pool = nn.MaxPool2d(
+                kernel_size=3, stride=2, padding=1
+            )
+        else:
+            self.optional_pool = nn.Identity()
+
+        self.layer1 = self._wide_layer(
+            WideBasicBlock,
+            num_stages[1],
+            num_blocks,
+            dropout_rate,
+            stride=1,
+            num_estimators=self.num_estimators,
+            groups=groups,
+        )
+        self.layer2 = self._wide_layer(
+            WideBasicBlock,
+            num_stages[2],
+            num_blocks,
+            dropout_rate,
+            stride=2,
+            num_estimators=self.num_estimators,
+            groups=groups,
+        )
+        self.layer3 = self._wide_layer(
+            WideBasicBlock,
+            num_stages[3],
+            num_blocks,
+            dropout_rate,
+            stride=2,
+            num_estimators=self.num_estimators,
+            groups=groups,
+        )
+
+        self.pool = nn.AdaptiveAvgPool2d(output_size=1)
+        self.flatten = nn.Flatten(1)
+
+        self.linear = LpbnnLinear(
+            num_stages[3],
+            num_classes,
+            num_estimators=num_estimators,
+        )
+
+    def _wide_layer(
+        self,
+        block: type[WideBasicBlock],
+        planes: int,
+        num_blocks: int,
+        dropout_rate: float,
+        stride: int,
+        num_estimators: int,
+        groups: int,
+    ) -> nn.Module:
+        strides = [stride] + [1] * (int(num_blocks) - 1)
+        layers = []
+
+        for stride in strides:
+            layers.append(
+                block(
+                    in_planes=self.in_planes,
+                    planes=planes,
+                    dropout_rate=dropout_rate,
+                    stride=stride,
+                    num_estimators=num_estimators,
+                    groups=groups,
+                )
+            )
+            self.in_planes = planes
+
+        return nn.Sequential(*layers)
+
+    def forward(self, x: Tensor) -> Tensor:
+        # if not self.training:
+        x = x.repeat(self.num_estimators, 1, 1, 1)
+        out = F.relu(self.bn1(self.conv1(x)))
+        out = self.optional_pool(out)
+        out = self.layer1(out)
+        out = self.layer2(out)
+        out = self.layer3(out)
+        out = self.pool(out)
+        out = self.flatten(out)
+        return self.linear(out)
+
+
+def lpbnn_wideresnet28x10(
+    in_channels: int,
+    num_estimators: int,
+    groups: int,
+    num_classes: int,
+    style: str = "imagenet",
+) -> _LpbnnWideResNet:
+    return _LpbnnWideResNet(
+        in_channels=in_channels,
+        depth=28,
+        widen_factor=10,
+        num_classes=num_classes,
+        dropout_rate=0.3,
+        num_estimators=num_estimators,
+        groups=groups,
+        style=style,
+    )

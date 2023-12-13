@@ -22,6 +22,11 @@ from torch_uncertainty.models.resnet import (
     batched_resnet50,
     batched_resnet101,
     batched_resnet152,
+    lpbnn_resnet18,
+    lpbnn_resnet34,
+    lpbnn_resnet50,
+    lpbnn_resnet101,
+    lpbnn_resnet152,
     masked_resnet18,
     masked_resnet34,
     masked_resnet50,
@@ -52,22 +57,22 @@ from torch_uncertainty.transforms import MIMOBatchFormat, RepeatTarget
 
 class ResNet:
     single = ["vanilla"]
-    ensemble = ["packed", "batched", "masked", "mimo", "mc-dropout"]
+    ensemble = ["batched", "lpbnn", "masked", "mc-dropout", "mimo", "packed"]
     versions = {
         "vanilla": [resnet18, resnet34, resnet50, resnet101, resnet152],
-        "packed": [
-            packed_resnet18,
-            packed_resnet34,
-            packed_resnet50,
-            packed_resnet101,
-            packed_resnet152,
-        ],
         "batched": [
             batched_resnet18,
             batched_resnet34,
             batched_resnet50,
             batched_resnet101,
             batched_resnet152,
+        ],
+        "lpbnn": [
+            lpbnn_resnet18,
+            lpbnn_resnet34,
+            lpbnn_resnet50,
+            lpbnn_resnet101,
+            lpbnn_resnet152,
         ],
         "masked": [
             masked_resnet18,
@@ -76,6 +81,7 @@ class ResNet:
             masked_resnet101,
             masked_resnet152,
         ],
+        "mc-dropout": [resnet18, resnet34, resnet50, resnet101, resnet152],
         "mimo": [
             mimo_resnet18,
             mimo_resnet34,
@@ -83,7 +89,13 @@ class ResNet:
             mimo_resnet101,
             mimo_resnet152,
         ],
-        "mc-dropout": [resnet18, resnet34, resnet50, resnet101, resnet152],
+        "packed": [
+            packed_resnet18,
+            packed_resnet34,
+            packed_resnet50,
+            packed_resnet101,
+            packed_resnet152,
+        ],
     }
     archs = [18, 34, 50, 101, 152]
 
@@ -95,11 +107,11 @@ class ResNet:
         optimization_procedure: Any,
         version: Literal[
             "vanilla",
-            "mc-dropout",
-            "packed",
             "batched",
-            "masked",
+            "lpbnn" "masked",
+            "mc-dropout",
             "mimo",
+            "packed",
         ],
         arch: int,
         style: str = "imagenet",
@@ -214,6 +226,13 @@ class ResNet:
                     "num_estimators": num_estimators,
                 }
             )
+        elif version == "lpbnn":
+            params.update(
+                {
+                    "num_estimators": num_estimators,
+                }
+            )
+            format_batch_fn = RepeatTarget(num_repeats=num_estimators)
         elif version == "packed":
             params.update(
                 {

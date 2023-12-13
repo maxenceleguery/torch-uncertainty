@@ -18,6 +18,7 @@ from torch_uncertainty.baselines.utils.parser_addons import (
 )
 from torch_uncertainty.models.wideresnet import (
     batched_wideresnet28x10,
+    lpbnn_wideresnet28x10,
     masked_wideresnet28x10,
     mimo_wideresnet28x10,
     packed_wideresnet28x10,
@@ -32,10 +33,11 @@ from torch_uncertainty.transforms import MIMOBatchFormat, RepeatTarget
 
 class WideResNet:
     single = ["vanilla"]
-    ensemble = ["packed", "batched", "masked", "mimo", "mc-dropout"]
+    ensemble = ["packed", "lpbnn", "batched", "masked", "mimo", "mc-dropout"]
     versions = {
         "vanilla": [wideresnet28x10],
         "mc-dropout": [wideresnet28x10],
+        "lpbnn": [lpbnn_wideresnet28x10],
         "packed": [packed_wideresnet28x10],
         "batched": [batched_wideresnet28x10],
         "masked": [masked_wideresnet28x10],
@@ -49,7 +51,13 @@ class WideResNet:
         loss: type[nn.Module],
         optimization_procedure: Any,
         version: Literal[
-            "vanilla", "mc-dropout", "packed", "batched", "masked", "mimo"
+            "vanilla",
+            "lpbnn",
+            "mc-dropout",
+            "packed",
+            "batched",
+            "masked",
+            "mimo",
         ],
         style: str = "imagenet",
         num_estimators: int | None = None,
@@ -138,7 +146,7 @@ class WideResNet:
             "groups": groups,
         }
 
-        format_batch_fn = nn.Identity()
+        format_batch_fn = None
 
         if version not in cls.versions:
             raise ValueError(f"Unknown version: {version}")
@@ -157,6 +165,13 @@ class WideResNet:
                     "num_estimators": num_estimators,
                 }
             )
+        elif version == "lpbnn":
+            params.update(
+                {
+                    "num_estimators": num_estimators,
+                }
+            )
+            format_batch_fn = RepeatTarget(num_repeats=num_estimators)
         elif version == "packed":
             params.update(
                 {

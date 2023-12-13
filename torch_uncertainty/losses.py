@@ -2,6 +2,8 @@ import torch
 from torch import Tensor, nn
 from torch.nn import functional as F
 
+from torch_uncertainty.layers.lpbnn import LpbnnConv2d, LpbnnLinear
+
 from .layers.bayesian import bayesian_modules
 
 
@@ -96,6 +98,50 @@ class ELBOLoss(nn.Module):
             aggregated_elbo += self.criterion(logits, targets)
             aggregated_elbo += self.kl_weight * self._kl_div()
         return aggregated_elbo / self.num_samples
+
+
+class LpbnnLoss(nn.Module):
+    def __init__(
+        self,
+        model: nn.Module,
+        criterion: nn.Module,
+        kl_weight: float,
+    ) -> None:
+        super().__init__()
+        self.model = model
+
+        if isinstance(criterion, type):
+            raise TypeError(
+                "The criterion should be an instance of a class. "
+                f"Got {criterion}."
+            )
+        self.criterion = criterion
+
+        if kl_weight < 0:
+            raise ValueError(
+                f"The KL weight should be non-negative. Got {kl_weight}."
+            )
+        self.kl_weight = kl_weight
+
+    def lpbnn_loss(self):
+        kl_divergence = torch.zeros(1)
+        num_mods = 0
+        for module in self.model.modules():
+            if isinstance(module, LpbnnConv2d | LpbnnLinear):
+                kl_divergence = kl_divergence.to(
+                    device=module.loss_latent.device
+                )
+                kl_divergence += module.loss_latent
+                num_mods += 1
+        return kl_divergence / num_mods
+
+    def forward(self, inputs: Tensor, targets: Tensor) -> Tensor:
+        aggregated_elbo = torch.zeros(1, device=inputs.device)
+        logits = self.model(inputs)
+        logits = logits.view(-1, logits.size(-1))
+        aggregated_elbo += self.criterion(logits, targets)
+        aggregated_elbo += self.kl_weight * self.lpbnn_loss()
+        return aggregated_elbo
 
 
 class NIGLoss(nn.Module):
