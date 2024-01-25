@@ -31,7 +31,7 @@ class FilterResponseNorm(nn.Module):
         return torch.max(y, self.tau)
 
 
-class BatchNormAdapter2d(nn.Module):
+class BatchNormAdapter(nn.Module):
     def __init__(
         self,
         num_features: int,
