@@ -37,3 +37,49 @@ class FilterResponseNorm2d(nn.Module):
         x = x * torch.rsqrt(nu2 + self.eps)
         y = self.gamma * x + self.beta
         return torch.max(y, self.tau)
+
+
+class BatchNormAdapter2d(nn.Module):
+    def __init__(
+        self,
+        num_features: int,
+        alpha: float = 0.01,
+        device=None,
+        dtype=None,
+    ) -> None:
+        super().__init__()
+        self.running_mean = nn.Parameter(
+            torch.zeros(num_features, device=device, dtype=dtype),
+            requires_grad=False,
+        )
+        self.running_var = nn.Parameter(
+            torch.ones(num_features, device=device, dtype=dtype),
+            requires_grad=False,
+        )
+        self.weight = nn.Parameter(
+            torch.ones(num_features, device=device, dtype=dtype)
+        )
+        self.bias = nn.Parameter(
+            torch.zeros(num_features, device=device, dtype=dtype)
+        )
+        self.num_batches_tracked = nn.Parameter(
+            torch.tensor(0, dtype=torch.long, device=device),
+            requires_grad=False,
+        )
+        self.alpha = alpha
+        self.training = True
+
+    def forward(self, x: Tensor) -> Tensor:
+        out = nn.functional.batch_norm(
+            x,
+            self.running_mean,
+            self.running_var,
+            None,
+            None,
+            self.training,
+            0.1,
+            1e-5,
+        )
+        return self.weight.unsqueeze(-1).unsqueeze(-1) * out * (
+            torch.randn_like(x) * self.alpha + 1
+        ) + self.bias.unsqueeze(-1).unsqueeze(-1)
