@@ -102,3 +102,18 @@ If you find the corresponding models interesting, please consider citing our [pa
     year={2023}
 }
 ```
+
+This package also contains the official implementation of ABNN.
+
+If you find the corresponding models interesting, please consider citing our [paper](https://arxiv.org/abs/2312.15297):
+
+```text
+@inproceedings{franchi2023make,
+      title={Make Me a BNN: A Simple Strategy for Estimating Bayesian Uncertainty from Pre-trained Models}, 
+      author={Gianni Franchi and Olivier Laurent and Maxence Leguéry and Andrei Bursuc and Andrea Pilzer and Angela Yao},
+      year={2023},
+      eprint={2312.15297},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG}
+}
+```

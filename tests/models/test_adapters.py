@@ -10,8 +10,16 @@ class TestAdaptersWrapper:
     """Testing the adapters wrapper."""
 
     def test_main(self):
-        model = a_bnn(resnet50(3, 10), alpha=0.01)
-        assert model(torch.randn(6, 3, 4, 4)).shape == (6, 10)
+        rand = torch.randn(6, 3, 4, 4)
+        resnet = resnet50(3, 10)
+        model = a_bnn(resnet, alpha=0.1)
+        assert model(input).shape == (6, 10)
+        assert not torch.allclose(
+            model(rand), model(rand)
+        ), (
+            "Same output but shouldn't"
+        )  # Check if there is random during inference
+        # assert torch.allclose(resnet(rand),resnet(rand)), "Different output but shouldn't" # Check if there is no random during inference
 
     def test_value_error_alpha(self):
         with pytest.raises(ValueError):
