@@ -31,7 +31,9 @@ class _Adapters(nn.Module):
         if alpha < 0:
             raise ValueError(f"alpha must be positive. Got {alpha}.")
 
+        state_dict = model.state_dict()
         self.replace_bn(model, "model")
+        model.load_state_dict(state_dict=state_dict)
 
     def replace_bn(self, module, name):
         """Recursively replace BatchNorm2d with BatchNormAdapter."""
