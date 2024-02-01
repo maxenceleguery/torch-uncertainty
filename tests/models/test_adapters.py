@@ -13,13 +13,21 @@ class TestAdaptersWrapper:
         rand = torch.randn(6, 3, 4, 4)
         resnet = resnet50(3, 10)
         model = a_bnn(resnet, alpha=0.1)
-        assert model(input).shape == (6, 10)
+        assert model(rand).shape == (6, 10)
         assert not torch.allclose(
             model(rand), model(rand)
         ), (
             "Same output but shouldn't"
         )  # Check if there is random during inference
         # assert torch.allclose(resnet(rand),resnet(rand)), "Different output but shouldn't" # Check if there is no random during inference
+
+    def test_main_ens(self):
+        rand = torch.randn(6, 3, 4, 4)
+        resnet0 = resnet50(3, 10)
+        resnet1 = resnet50(3, 10)
+        resnet2 = resnet50(3, 10)
+        model = a_bnn([resnet0, resnet1, resnet2], alpha=0.1)
+        assert model(rand).shape == (6 * 3, 10)
 
     def test_value_error_alpha(self):
         with pytest.raises(ValueError):

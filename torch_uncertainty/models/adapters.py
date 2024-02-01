@@ -7,33 +7,40 @@ from torch_uncertainty.layers.normalization import BatchNormAdapter
 class _Adapters(nn.Module):
     def __init__(
         self,
-        model: nn.Module,
+        model: list[nn.Module] | nn.Module,
         alpha: float = 0.01,
+        num_samples: int = 1,
     ) -> None:
-        """Create a ABNN from a model."""
+        """Create a ABNN from a model or ABNN ensemble from a list of model."""
         super().__init__()
 
-        self.model = model
+        if isinstance(model, nn.Module):
+            self.models = [model]
+        else:
+            self.models = model
+
         self.alpha = alpha
-
-        # Count number of BatchNorm2d before recursively replace them
-        batch_norms = [
-            k.split(".")
-            for k, m in model.named_modules()
-            if "BatchNorm2d" in type(m).__name__
-        ]
-
-        if len(batch_norms) == 0:
-            raise ValueError(
-                "the model does not contain any batchNorm2d layer."
-            )
+        self.num_samples = num_samples
 
         if alpha < 0:
             raise ValueError(f"alpha must be positive. Got {alpha}.")
 
-        state_dict = model.state_dict()
-        self.replace_bn(model, "model")
-        model.load_state_dict(state_dict=state_dict)
+        for model in self.models:
+            # Count number of BatchNorm2d before recursively replace them
+            batch_norms = [
+                k.split(".")
+                for k, m in model.named_modules()
+                if "BatchNorm2d" in type(m).__name__
+            ]
+
+            if len(batch_norms) == 0:
+                raise ValueError(
+                    "one model does not contain any batchNorm2d layer."
+                )
+
+            state_dict = model.state_dict()
+            self.replace_bn(model, "model")
+            model.load_state_dict(state_dict=state_dict)
 
     def replace_bn(self, module, name):
         """Recursively replace BatchNorm2d with BatchNormAdapter."""
@@ -51,7 +58,16 @@ class _Adapters(nn.Module):
             self.replace_bn(immediate_child_module, name)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.model(x)
+        if len(self.models) == 1:
+            return self.models[0](x)
+        return torch.cat(
+            [
+                model(x)
+                for _ in range(self.num_samples)
+                for model in self.models
+            ],
+            dim=0,
+        )
 
 
 def a_bnn(model: nn.Module, alpha: float = 0.01) -> _Adapters:
