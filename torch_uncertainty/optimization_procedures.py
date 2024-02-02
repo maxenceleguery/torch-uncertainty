@@ -376,7 +376,9 @@ def batch_ensemble_wrapper(
 def optim_cifar10_abnn_finetuning(
     model: nn.Module,
 ) -> dict[str, Optimizer | LRScheduler]:
-    r"""Hyperparameters from ABNN finetuning on Cifar10."""
+    r"""Hyperparameters from ABNN finetuning on Cifar10.
+    Two more training epochs only on BatchNorms parameters.
+    """
     params_bn_tmp = list(
         filter(
             lambda kv: ("bn" in kv[0]),
