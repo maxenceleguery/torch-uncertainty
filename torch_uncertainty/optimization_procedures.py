@@ -373,6 +373,28 @@ def batch_ensemble_wrapper(
     return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
 
+def optim_cifar10_abnn_finetuning(
+    model: nn.Module,
+) -> dict[str, Optimizer | LRScheduler]:
+    r"""Hyperparameters from ABNN finetuning on Cifar10."""
+    params_bn_tmp = list(
+        filter(
+            lambda kv: ("bn" in kv[0]),
+            model.named_parameters(),
+        )
+    )
+    params_bn = [param for _, param in params_bn_tmp]
+
+    optimizer = optim.SGD(
+        params_bn,
+        lr=0.0057,
+        momentum=0.9,
+        weight_decay=5e-4,
+        nesterov=True,
+    )
+    return {"optimizer": optimizer}
+
+
 def get_procedure(
     arch_name: str,
     ds_name: str,

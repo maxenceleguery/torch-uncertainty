@@ -15,9 +15,9 @@ class _Adapters(nn.Module):
         super().__init__()
 
         if isinstance(model, nn.Module):
-            self.models = [model]
+            self.models = nn.ModuleList([model])
         else:
-            self.models = model
+            self.models = nn.ModuleList(model)
 
         self.alpha = alpha
         self.num_samples = num_samples
@@ -47,7 +47,7 @@ class _Adapters(nn.Module):
         # go through all attributes of current module and replace all BatchNorm2d
         for attr_str in dir(module):
             target_attr = getattr(module, attr_str)
-            if type(target_attr) == torch.nn.BatchNorm2d:
+            if isinstance(target_attr, torch.nn.BatchNorm2d):
                 new_batch_norm = BatchNormAdapter(
                     target_attr.num_features, alpha=self.alpha
                 )
@@ -70,5 +70,7 @@ class _Adapters(nn.Module):
         )
 
 
-def a_bnn(model: nn.Module, alpha: float = 0.01) -> _Adapters:
-    return _Adapters(model=model, alpha=alpha)
+def a_bnn(
+    model: nn.Module, alpha: float = 0.01, num_samples: int = 1
+) -> _Adapters:
+    return _Adapters(model=model, alpha=alpha, num_samples=num_samples)

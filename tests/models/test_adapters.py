@@ -23,11 +23,14 @@ class TestAdaptersWrapper:
 
     def test_main_ens(self):
         rand = torch.randn(6, 3, 4, 4)
-        resnet0 = resnet50(3, 10)
-        resnet1 = resnet50(3, 10)
-        resnet2 = resnet50(3, 10)
-        model = a_bnn([resnet0, resnet1, resnet2], alpha=0.1)
-        assert model(rand).shape == (6 * 3, 10)
+        nb_ens = 3
+        num_samples = 5
+        model = a_bnn(
+            [resnet50(3, 10) for _ in range(nb_ens)],
+            alpha=0.1,
+            num_samples=num_samples,
+        )
+        assert model(rand).shape == (6 * nb_ens * num_samples, 10)
 
     def test_value_error_alpha(self):
         with pytest.raises(ValueError):
