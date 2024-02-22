@@ -30,7 +30,7 @@ class TestAdaptersWrapper:
             alpha=0.1,
             num_samples=num_samples,
         )
-        assert model(rand).shape == (6 * nb_ens * num_samples, 10)
+        assert model(rand).shape == (6 * nb_ens, 10)
 
     def test_value_error_alpha(self):
         with pytest.raises(ValueError):

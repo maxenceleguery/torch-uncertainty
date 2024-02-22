@@ -1,13 +1,14 @@
 # Custom
 .vscode/
 data/
-logs/
+logs*/
 lightning_logs/
 docs/*/generated/
 docs/*/auto_tutorials/
 *.pth
 *.ckpt
 *.out
+*.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

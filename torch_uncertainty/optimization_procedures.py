@@ -373,7 +373,31 @@ def batch_ensemble_wrapper(
     return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
 
-def optim_cifar10_abnn_finetuning(
+def optim_cifar10_resnet50_abnn_finetuning(
+    model: nn.Module, lr: float = 0.0057
+) -> dict[str, Optimizer | LRScheduler]:
+    r"""Hyperparameters from ABNN finetuning on Cifar10.
+    Two more training epochs only on BatchNorms parameters.
+    """
+    params_bn_tmp = list(
+        filter(
+            lambda kv: ("bn" in kv[0]),
+            model.named_parameters(),
+        )
+    )
+    params_bn = [param for _, param in params_bn_tmp]
+
+    optimizer = optim.SGD(
+        params_bn,
+        lr=lr,
+        momentum=0.9,
+        weight_decay=5e-4,
+        nesterov=True,
+    )
+    return {"optimizer": optimizer}
+
+
+def optim_cifar100_resnet50_abnn_finetuning(
     model: nn.Module,
 ) -> dict[str, Optimizer | LRScheduler]:
     r"""Hyperparameters from ABNN finetuning on Cifar10.
@@ -389,12 +413,72 @@ def optim_cifar10_abnn_finetuning(
 
     optimizer = optim.SGD(
         params_bn,
-        lr=0.0057,
+        lr=0.00139,
+        momentum=0.9,
+        weight_decay=5e-4,
+        nesterov=True,
+    )
+
+    scheduler = optim.lr_scheduler.MultiStepLR(
+        optimizer,
+        milestones=[5],
+        gamma=0.5,
+    )
+    return {"optimizer": optimizer, "scheduler": scheduler}
+
+
+def optim_cifar10_wideresnet28x10_abnn_finetuning(
+    model: nn.Module, lr: float = 0.0091
+) -> dict[str, Optimizer | LRScheduler]:
+    r"""Hyperparameters from ABNN finetuning on Cifar10.
+    Two more training epochs only on BatchNorms parameters.
+    """
+    params_bn_tmp = list(
+        filter(
+            lambda kv: ("bn" in kv[0]),
+            model.named_parameters(),
+        )
+    )
+    params_bn = [param for _, param in params_bn_tmp]
+
+    optimizer = optim.SGD(
+        params_bn,
+        lr=lr,
         momentum=0.9,
         weight_decay=5e-4,
         nesterov=True,
     )
     return {"optimizer": optimizer}
+
+
+def optim_cifar100_wideresnet28x10_abnn_finetuning(
+    model: nn.Module, lr: float = 0.034
+) -> dict[str, Optimizer | LRScheduler]:
+    r"""Hyperparameters from ABNN finetuning on Cifar10.
+    Two more training epochs only on BatchNorms parameters.
+    """
+    params_bn_tmp = list(
+        filter(
+            lambda kv: ("bn" in kv[0]),
+            model.named_parameters(),
+        )
+    )
+    params_bn = [param for _, param in params_bn_tmp]
+
+    optimizer = optim.SGD(
+        params_bn,
+        lr=lr,
+        momentum=0.9,
+        weight_decay=5e-4,
+        nesterov=True,
+    )
+
+    scheduler = optim.lr_scheduler.MultiStepLR(
+        optimizer,
+        milestones=[5],
+        gamma=0.5,
+    )
+    return {"optimizer": optimizer, "scheduler": scheduler}
 
 
 def get_procedure(
